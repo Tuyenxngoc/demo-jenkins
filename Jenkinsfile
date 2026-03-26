@@ -9,7 +9,7 @@ pipeline {
 
         stage('Checkout') {
             steps {
-                echo 'Pulling code from GitLab...'
+                echo "Pulling code from GitLab branch: ${env.BRANCH_NAME}"
                 checkout scm
             }
         }
@@ -35,9 +35,29 @@ pipeline {
         }
 
         stage('Archive') {
+            when {
+                anyOf {
+                    branch 'develop'
+                    branch 'master'
+                    expression { env.BRANCH_NAME.startsWith('release/') }
+                }
+            }
             steps {
                 echo 'Archiving build artifact...'
                 archiveArtifacts artifacts: 'target/*.jar', fingerprint: true
+            }
+        }
+
+        stage('Deploy') {
+            when {
+                anyOf {
+                    branch 'master'
+                    expression { env.BRANCH_NAME.startsWith('release/') }
+                }
+            }
+            steps {
+                echo "Deploying branch ${env.BRANCH_NAME} to production..."
+                // TODO
             }
         }
 
@@ -45,10 +65,10 @@ pipeline {
 
     post {
         success {
-            echo 'Pipeline SUCCESS!'
+            echo "Pipeline SUCCESS for branch ${env.BRANCH_NAME}!"
         }
         failure {
-            echo 'Pipeline FAILED!'
+            echo "Pipeline FAILED for branch ${env.BRANCH_NAME}!"
         }
     }
 }
